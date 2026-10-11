@@ -1,56 +1,9 @@
-steps:
-  - name: Checkout repository
-    uses: actions/checkout@v4
-
-  - name: Set up Java
-    uses: actions/setup-java@v4
-    with:
-      distribution: temurin
-      java-version: '17'
-
-  - name: Set up Flutter
-    uses: subosito/flutter-action@v2
-    with:
-      channel: stable
-
-  - name: Extract Flutter project
-    shell: bash
+- name: Generate Android files
     run: |
-      ZIP_FILE="$(find "$GITHUB_WORKSPACE" -maxdepth 1 -type f -name '*.zip' -print -quit)"
-      if [ -z "$ZIP_FILE" ]; then
-        echo "ERROR: No ZIP file found in the repository root."
-        exit 1
-      fi
-
-      mkdir -p extracted
-      unzip -o "$ZIP_FILE" -d extracted
-
       PROJECT_DIR="$(find "$GITHUB_WORKSPACE/extracted" -name pubspec.yaml -print -quit | xargs -r dirname)"
       if [ -z "$PROJECT_DIR" ]; then
-        echo "ERROR: Could not find pubspec.yaml."
+        echo "Could not find pubspec.yaml"
         exit 1
       fi
-
-      echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
-      echo "Flutter project found at: $PROJECT_DIR"
-
-  - name: Generate Android files
-    run: |
       cd "$PROJECT_DIR"
       flutter create --platforms=android .
-
-  - name: Build APK
-    run: |
-      cd "$PROJECT_DIR"
-      flutter pub get
-      flutter build apk --debug
-
-  - name: Upload APK artifact
-    uses: actions/upload-artifact@v4
-    with:
-      name: aura-debug-apk
-      path: extracted/**/build/app/outputs/flutter-apk/app-debug.apk
-      if-no-files-found: error
-
-         
-  
