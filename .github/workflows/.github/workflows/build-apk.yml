@@ -1,4 +1,4 @@
-name: Build AURA Android APK
+name: .github/workflows/build-apk.yml
 
 on:
   workflow_dispatch:
