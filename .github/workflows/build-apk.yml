@@ -1,45 +1,10 @@
-- name: Set up Java
-    uses: actions/setup-java@v4
-    with:
-      distribution: temurin
-      java-version: '17'
+      - name: Generate Android files
+        run: |
+          cd "$PROJECT_DIR"
+          flutter create --platforms=android .
 
-  - name: Set up Flutter
-    uses: subosito/flutter-action@v2
-    with:
-      channel: stable
-
-  - name: Extract Flutter project
-    shell: bash
-    run: |
-      ZIP_FILE="$(find "$GITHUB_WORKSPACE" -maxdepth 1 -type f -name '*.zip' -print -quit)"
-      if [ -z "$ZIP_FILE" ]; then
-        echo "ERROR: No ZIP file found in the repository root."
-        exit 1
-      fi
-      mkdir -p extracted
-      unzip -o "$ZIP_FILE" -d extracted
-      PROJECT_DIR="$(find "$GITHUB_WORKSPACE/extracted" -name pubspec.yaml -print -quit | xargs -r dirname)"
-      if [ -z "$PROJECT_DIR" ]; then
-        echo "ERROR: pubspec.yaml not found."
-        exit 1
-      fi
-      echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
-
-  - name: Generate Android files
-    run: |
-      cd "$PROJECT_DIR"
-      flutter create --platforms=android .
-
-  - name: Build APK
-    run: |
-      cd "$PROJECT_DIR"
-      flutter pub get
-      flutter build apk --debug
-
-  - name: Upload APK artifact
-    uses: actions/upload-artifact@v4
-    with:
-      name: aura-debug-apk
-      path: extracted/**/build/app/outputs/flutter-apk/app-debug.apk
-      if-no-files-found: error
+      - name: Build APK
+        run: |
+          cd "$PROJECT_DIR"
+          flutter pub get
+          flutter build apk --debug
