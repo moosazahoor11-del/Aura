@@ -1,0 +1,53 @@
+name: .github/workflows/build-apk.yml
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'aura_flutter_starter_v0_8.zip'
+      - '.github/workflows/build-apk.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Extract Flutter project
+        run: |
+          unzip -o aura_flutter_starter_v0_8.zip -d extracted
+          echo "Files extracted:"
+          find extracted -maxdepth 3 -name pubspec.yaml -print
+
+      - name: Locate project and install Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Build APK
+        run: |
+          PROJECT_DIR="$(find "$GITHUB_WORKSPACE/extracted" -name pubspec.yaml -print -quit | xargs dirname)"
+          if [ -z "$PROJECT_DIR" ]; then
+            echo "Could not find pubspec.yaml in the ZIP."
+            exit 1
+          fi
+          cd "$PROJECT_DIR"
+          flutter pub get
+          flutter build apk --debug
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: aura-debug-apk
+          path: extracted/**/build/app/outputs/flutter-apk/app-debug.apk
+          if-no-files-found: error
