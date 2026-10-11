@@ -1,53 +1,56 @@
-name: .github/workflows/build-apk.yml
+steps:
+  - name: Checkout repository
+    uses: actions/checkout@v4
 
-on:
-  workflow_dispatch:
-  push:
-    paths:
-      - 'aura_flutter_starter_v0_8.zip'
-      - '.github/workflows/build-apk.yml'
+  - name: Set up Java
+    uses: actions/setup-java@v4
+    with:
+      distribution: temurin
+      java-version: '17'
 
-permissions:
-  contents: read
+  - name: Set up Flutter
+    uses: subosito/flutter-action@v2
+    with:
+      channel: stable
 
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+  - name: Extract Flutter project
+    shell: bash
+    run: |
+      ZIP_FILE="$(find "$GITHUB_WORKSPACE" -maxdepth 1 -type f -name '*.zip' -print -quit)"
+      if [ -z "$ZIP_FILE" ]; then
+        echo "ERROR: No ZIP file found in the repository root."
+        exit 1
+      fi
 
-      - name: Set up Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
+      mkdir -p extracted
+      unzip -o "$ZIP_FILE" -d extracted
 
-      - name: Extract Flutter project
-        run: |
-          unzip -o aura_flutter_starter_v0_8.zip -d extracted
-          echo "Files extracted:"
-          find extracted -maxdepth 3 -name pubspec.yaml -print
+      PROJECT_DIR="$(find "$GITHUB_WORKSPACE/extracted" -name pubspec.yaml -print -quit | xargs -r dirname)"
+      if [ -z "$PROJECT_DIR" ]; then
+        echo "ERROR: Could not find pubspec.yaml."
+        exit 1
+      fi
 
-      - name: Locate project and install Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          channel: stable
+      echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
+      echo "Flutter project found at: $PROJECT_DIR"
 
-      - name: Build APK
-        run: |
-          PROJECT_DIR="$(find "$GITHUB_WORKSPACE/extracted" -name pubspec.yaml -print -quit | xargs dirname)"
-          if [ -z "$PROJECT_DIR" ]; then
-            echo "Could not find pubspec.yaml in the ZIP."
-            exit 1
-          fi
-          cd "$PROJECT_DIR"
-          flutter pub get
-          flutter build apk --debug
+  - name: Generate Android files
+    run: |
+      cd "$PROJECT_DIR"
+      flutter create --platforms=android .
 
-      - name: Upload APK artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: aura-debug-apk
-          path: extracted/**/build/app/outputs/flutter-apk/app-debug.apk
-          if-no-files-found: error
+  - name: Build APK
+    run: |
+      cd "$PROJECT_DIR"
+      flutter pub get
+      flutter build apk --debug
+
+  - name: Upload APK artifact
+    uses: actions/upload-artifact@v4
+    with:
+      name: aura-debug-apk
+      path: extracted/**/build/app/outputs/flutter-apk/app-debug.apk
+      if-no-files-found: error
+
+         
+  
