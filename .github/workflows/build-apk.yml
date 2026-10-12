@@ -8,7 +8,3 @@
           cd "$PROJECT_DIR"
           flutter pub get
           flutter build apk --debug
-      - name: Generate Android files
-        run: |
-          cd "$PROJECT_DIR"
-          flutter create --platforms=android .
