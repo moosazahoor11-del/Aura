@@ -55,7 +55,19 @@ jobs:
         run: |
           cd "$PROJECT_DIR"
           flutter pub get
+      - name: Get Flutter dependencies
+        run: |
+          cd "$PROJECT_DIR"
+          flutter pub get
 
+      - name: Fix unsupported color constants
+        run: |
+          sed -i 's/Colors\.white45/Colors.white54/g' "$PROJECT_DIR/lib/main.dart"
+
+      - name: Build APK
+        run: |
+          cd "$PROJECT_DIR"
+          flutter build apk --debug
       - name: Build APK
         run: |
           cd "$PROJECT_DIR"
