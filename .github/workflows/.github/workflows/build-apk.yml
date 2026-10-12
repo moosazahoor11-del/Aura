@@ -1,4 +1,4 @@
-name: .github/workflows/build-apk.yml
+name: Build AURA APK
 
 on:
   workflow_dispatch:
@@ -13,6 +13,7 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -23,24 +24,32 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Extract Flutter project
-        run: |
-          unzip -o aura_flutter_starter_v0_8.zip -d extracted
-          echo "Files extracted:"
-          find extracted -maxdepth 3 -name pubspec.yaml -print
-
-      - name: Locate project and install Flutter
+      - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: stable
 
-      - name: Build APK
+      - name: Extract Flutter project
         run: |
-          PROJECT_DIR="$(find "$GITHUB_WORKSPACE/extracted" -name pubspec.yaml -print -quit | xargs dirname)"
+          unzip -o aura_flutter_starter_v0_8.zip -d extracted
+
+      - name: Locate Flutter project
+        run: |
+          PROJECT_DIR="$(find "$GITHUB_WORKSPACE/extracted" -name pubspec.yaml -print -quit | xargs -r dirname)"
           if [ -z "$PROJECT_DIR" ]; then
             echo "Could not find pubspec.yaml in the ZIP."
             exit 1
           fi
+          echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
+          echo "Found project: $PROJECT_DIR"
+
+      - name: Generate Android files
+        run: |
+          cd "$PROJECT_DIR"
+          flutter create --platforms=android .
+
+      - name: Build APK
+        run: |
           cd "$PROJECT_DIR"
           flutter pub get
           flutter build apk --debug
